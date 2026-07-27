@@ -36,9 +36,11 @@ jobs:
       uses: docker/setup-buildx-action@v3
 
     - name: Run GoReleaser
-      uses: goreleaser/goreleaser-action@v5
+      uses: goreleaser/goreleaser-action@v6
       with:
-        version: latest
+        # Constrained to the v2 line that .goreleaser.yml declares, so a future
+        # major release of GoReleaser can't break the pipeline unannounced.
+        version: '~> v2'
         args: release --clean
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

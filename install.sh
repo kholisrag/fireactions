@@ -6,6 +6,7 @@ export CONTAINERD_VERSION=1.7.0
 export CNI_VERSION=1.6.0
 export DEBIAN_FRONTEND=noninteractive
 export FIREACTIONS_VERSION=0.2.5
+export FIREACTIONS_RELEASE_REPOSITORY=hostinger/fireactions
 export FIRECRACKER_VERSION=1.4.1
 export KERNEL_VERSION=5.10
 
@@ -22,6 +23,9 @@ usage()
   echo "  --github-repository                 Specify the GitHub repository, in <owner>/<repository>    (required, unless --github-organization)"
   echo "                                      format. Use this for personal (user) accounts."
   echo "  --fireactions-version               Specify the Fireactions version to install                (default: $FIREACTIONS_VERSION)"
+  echo "  --fireactions-release-repository    Specify the GitHub repository, in <owner>/<repository>    (default: $FIREACTIONS_RELEASE_REPOSITORY)"
+  echo "                                      format, to download the Fireactions release from. Set"
+  echo "                                      this to install a build published by a fork."
   echo "  --firecracker-version               Specify the Firecracker version to install                (default: $FIRECRACKER_VERSION)"
   echo "  --kernel-version                    Specify the kernel version to install                     (default: $KERNEL_VERSION)"
   echo "  --containerd-snapshotter-device     Specify the device to use for Containerd snapshot storage (required)"
@@ -237,7 +241,7 @@ install_fireactions()
   TEMP_DIR=$(mktemp -d)
 
   curl -sL -o "$TEMP_DIR/fireactions-v$FIREACTIONS_VERSION.tar.gz" \
-    "https://github.com/hostinger/fireactions/releases/download/v$FIREACTIONS_VERSION/fireactions-v$FIREACTIONS_VERSION-linux-$ARCH.tar.gz"
+    "https://github.com/$FIREACTIONS_RELEASE_REPOSITORY/releases/download/v$FIREACTIONS_VERSION/fireactions-v$FIREACTIONS_VERSION-linux-$ARCH.tar.gz"
   
   tar -zxf "$TEMP_DIR/fireactions-v$FIREACTIONS_VERSION.tar.gz" -C "$TEMP_DIR"
 
@@ -374,6 +378,13 @@ main()
       --fireactions-version=* )
         FIREACTIONS_VERSION="${1#*=}"
         ;;
+      --fireactions-release-repository )
+        shift
+        FIREACTIONS_RELEASE_REPOSITORY=$1
+        ;;
+      --fireactions-release-repository=* )
+        FIREACTIONS_RELEASE_REPOSITORY="${1#*=}"
+        ;;
       --firecracker-version )
         shift
         FIRECRACKER_VERSION=$1
@@ -468,6 +479,19 @@ main()
     export GITHUB_RUNNER_SCOPE="organization: $GITHUB_ORGANIZATION"
   fi
 
+  case "$FIREACTIONS_RELEASE_REPOSITORY" in
+    */*/* | /* | */)
+      print_error "Option --fireactions-release-repository must be in <owner>/<repository> format"
+      exit 1
+      ;;
+    */*)
+      ;;
+    *)
+      print_error "Option --fireactions-release-repository must be in <owner>/<repository> format"
+      exit 1
+      ;;
+  esac
+
   if [ -z "$CONTAINERD_SNAPSHOTTER_DEVICE" ]; then
     print_error "Option --containerd-snapshotter-device is required"
     usage
@@ -496,7 +520,7 @@ main()
     exit 1
   fi
 
-  echo "Installing Fireactions v$FIREACTIONS_VERSION..."
+  echo "Installing Fireactions v$FIREACTIONS_VERSION from $FIREACTIONS_RELEASE_REPOSITORY..."
 
   check_kvm
   install_dependencies

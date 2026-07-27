@@ -1,5 +1,15 @@
 ---
+version: 2
+
 project_name: fireactions
+
+env:
+# Container images are published to the GHCR namespace of the repository that is
+# being released, so a fork publishes under its own namespace without having to
+# patch this file. GITHUB_REPOSITORY is set automatically by GitHub Actions;
+# local runs fall back to the upstream repository and can override it by
+# exporting GITHUB_REPOSITORY themselves.
+- IMAGE_REPO=ghcr.io/{{ tolower (envOrDefault "GITHUB_REPOSITORY" "hostinger/fireactions") }}
 
 builds:
 - id: fireactions
@@ -19,17 +29,18 @@ builds:
 
 archives:
 - id: fireactions
-  builds:
+  ids:
   - fireactions
   name_template: fireactions-v{{ .Version }}-{{ .Os }}-{{ .Arch }}
-  format: tar.gz
+  formats:
+  - tar.gz
 
 dockers:
 - id: fireactions-amd64
   use: buildx
   dockerfile: Dockerfile
   image_templates:
-  - ghcr.io/hostinger/fireactions:{{ .Version }}-amd64
+  - "{{ .Env.IMAGE_REPO }}:{{ .Version }}-amd64"
   extra_files:
     - "./"
   build_flag_templates:
@@ -40,7 +51,7 @@ dockers:
   use: buildx
   dockerfile: Dockerfile
   image_templates:
-  - ghcr.io/hostinger/fireactions:{{ .Version }}-arm64
+  - "{{ .Env.IMAGE_REPO }}:{{ .Version }}-arm64"
   extra_files:
     - "./"
   build_flag_templates:
@@ -49,14 +60,20 @@ dockers:
   goarch: arm64
 
 docker_manifests:
-- name_template: ghcr.io/hostinger/fireactions:{{ .Version }}
+- name_template: "{{ .Env.IMAGE_REPO }}:{{ .Version }}"
   image_templates:
-  - ghcr.io/hostinger/fireactions:{{ .Version }}-amd64
-  - ghcr.io/hostinger/fireactions:{{ .Version }}-arm64
-- name_template: ghcr.io/hostinger/fireactions:latest
+  - "{{ .Env.IMAGE_REPO }}:{{ .Version }}-amd64"
+  - "{{ .Env.IMAGE_REPO }}:{{ .Version }}-arm64"
+- name_template: "{{ .Env.IMAGE_REPO }}:latest"
   image_templates:
-  - ghcr.io/hostinger/fireactions:{{ .Version }}-amd64
-  - ghcr.io/hostinger/fireactions:{{ .Version }}-arm64
+  - "{{ .Env.IMAGE_REPO }}:{{ .Version }}-amd64"
+  - "{{ .Env.IMAGE_REPO }}:{{ .Version }}-arm64"
+
+release:
+  # Tags carrying a semver pre-release suffix (for example v2.0.5-personal.1)
+  # are published as GitHub pre-releases so they don't displace the latest
+  # stable release.
+  prerelease: auto
 
 # Changelog is managed by release-please
 changelog:

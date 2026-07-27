@@ -14,6 +14,10 @@ permissions:
 
 jobs:
   release-please:
+    # Versioning and the changelog are owned by the upstream repository. Forks
+    # don't have the HOSTINGERBOT_* secrets this job needs, and running it there
+    # would bump versions that conflict with upstream on every sync, so skip it.
+    if: github.repository == 'hostinger/fireactions'
     runs-on: ubuntu-latest
     steps:
     - name: Get GitHub token
